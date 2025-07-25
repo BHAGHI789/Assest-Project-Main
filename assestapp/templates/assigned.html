@@ -1,0 +1,101 @@
+{% extends 'navbar.html' %}
+{% block content %}
+{% load static %}
+<style>
+    .form-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .form-select, .form-button {
+        height: 38px;
+        padding: 6px 12px;
+        font-size: 14px;
+         border-radius: 0.25rem;
+    }
+
+    .form-select {
+        min-width: 150px;
+    }
+
+    .product-select {
+        min-width: 320px;
+    }
+
+    .form-button {
+        background-color: #007bff;
+        border: none;
+        color: white;
+        cursor: pointer;
+    }
+
+    .form-button:hover {
+        background-color: #0056b3;
+    }
+    .scrollable-table{
+  height: 450px;
+  width:600px;
+  overflow-y:auto;
+  }
+</style>
+<h2>Assign Product Form</h2>
+<br>
+<form method="post" action="/assigned/">
+    {% csrf_token %}
+    <div class="form-row">
+        <!-- Product dropdown -->
+        <select name="product" class="form-select product-select" required>
+            <option value="">Select product</option>
+            {% for product in products %}
+                <option value="{{ product.id }}">{{ product.description }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- User dropdown -->
+        <select name="users" class="form-select" required>
+            <option value="">Select user</option>
+            {% for user1 in users %}
+                <option value="{{ user1.id }}">{{ user1.user.username }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Submit button -->
+        <button type="submit" class="form-button">Submit</button>
+    </div>
+</form>
+{% if message %}
+    <p style="color: green;">{{ message }}</p>
+{% endif %}
+<br>
+<br>
+
+<h2>Assigned List</h2>
+<div class="scrollable-table">
+<table border="1" cellpadding="10">
+    <thead>
+        <tr>
+<!--            <th>ID</th>-->
+            <th>Employee</th>
+            <th>Details</th>
+            <th>Assigned Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for assignment in assignments %}
+            <tr>
+<!--                <td>{{ assignment.id }}</td>-->
+                <td>{{ assignment.employee.user.username }}</td>
+                <td>{{ assignment.details.description }}</td>
+                <td>{{ assignment.date }}</td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">No assignments found.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

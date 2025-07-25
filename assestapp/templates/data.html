@@ -1,0 +1,504 @@
+<!--<h3>Details form</h3>-->
+<!--  <input type="hidden" name="record_id" id="record_id">-->
+<!--  <input type="text" name="make" id="make" class="form-control" placeholder="Make" required>-->
+<!--  <input type="text" name="modelno" id="modelno" class="form-control" placeholder="Model No" required>-->
+<!--  <input type="text" name="description" id="description" class="form-control" placeholder="Description" required>-->
+
+<!--  <select name="unit" id="unitSelect" class="form-select" required>-->
+<!--    <option value="">Select Unit</option>-->
+<!--    <option value="numbers">Numbers</option>-->
+<!--    <option value="meters">Meters</option>-->
+<!--  </select>-->
+
+<!--  <button type="submit" id="saveData" class="btn">Save</button>-->
+<!--&lt;!&ndash;</form>&ndash;&gt;-->
+<!--<br>-->
+<!--<br><br><br>-->
+
+<!--    <div class="scrollable-table">-->
+<!--        {% if data %}-->
+<!--        <h3>Details table</h3>-->
+<!--  <table id="dataTable" border="1" cellpadding="10">-->
+<!--  <tr>-->
+<!--    <th>Make</th>-->
+<!--    <th>Model No</th>-->
+<!--    <th>Description</th>-->
+<!--    <th>Units</th>-->
+<!--    <th>Actions</th>-->
+<!--  </tr>-->
+<!--      {% for data in data %}-->
+<!--  <tr data-id="{{ data.id }}">-->
+<!--    <td>{{ data.make }}</td>-->
+<!--    <td>{{ data.modelno }}</td>-->
+<!--    <td>{{ data.description }}</td>-->
+<!--    <td>{{ data.units }}</td>-->
+<!--    <td>-->
+<!--      <button  onclick="editRow(this)">Edit</button>-->
+<!--      <button  onclick="deleteRow(this)">Delete</button>-->
+<!--    </td>-->
+<!--  </tr>-->
+<!--  {% endfor %}-->
+<!--</table>-->
+<!--    </div>-->
+<!--  {% else %}-->
+<!--  <p>No records found...!</p>-->
+<!--  {% endif %}-->
+<!--</div>-->
+<!--  </table>-->
+<!--    </div>-->
+<!--<script>-->
+<!--    document.getElementById('saveData').addEventListener('click', function() {-->
+<!--    const make = document.getElementById('make').value;-->
+<!--    const modelno = document.getElementById('modelno.).value;-->
+<!--    const description = document.getElementById('description,).value;-->
+
+<!--    fetch('/save_data/', { // Replace with your Django view URL-->
+<!--               method: 'POST',-->
+<!--               headers: {-->
+<!--                   'Content-Type': 'application/json',-->
+<!--                   'X-CSRFToken': getCookie('csrftoken')-->
+<!--               },-->
+<!--               body: JSON.stringify({-->
+<!--                   name: name,-->
+<!--               })-->
+<!--           })-->
+<!--           .then(response => response.json())-->
+<!--           .then(data => {-->
+<!--               console.log('Success:', data);-->
+<!--           })-->
+<!--           .catch(error => {-->
+<!--               console.error('Error:', error);-->
+<!--           });-->
+<!--       });-->
+
+<!--    function getCookie(make) {-->
+<!--           let cookieValue = null;-->
+<!--           if (document.cookie && document.cookie !== '') {-->
+<!--               const cookies = document.cookie.split(';');-->
+<!--               for (let i = 0; i < cookies.length; i++) {-->
+<!--                   const cookie = cookies[i].trim();-->
+<!--                   if (cookie.startsWith(make + '=')) {-->
+<!--                       cookieValue = decodeURIComponent(cookie.substring(make.length + 1));-->
+<!--                       break;-->
+<!--                   }-->
+<!--               }-->
+<!--           }-->
+<!--           return cookieValue;-->
+<!--       }-->
+<!--</script>-->
+
+
+
+
+
+# views.py
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+from .models import Equipment
+
+@csrf_exempt  # Optional if you handle CSRF with token in headers
+@require_POST
+def save_details(request):
+    try:
+        data = json.loads(request.body)
+        make = data.get('make')
+        modelno = data.get('modelno')
+        description = data.get('description')
+        unit = data.get('unit')
+
+        if not all([make, modelno, description, unit]):
+            return JsonResponse({'success': False, 'error': 'All fields are required.'})
+
+        equipment = Equipment.objects.create(
+            make=make,
+            modelno=modelno,
+            description=description,
+            unit=unit
+        )
+
+        return JsonResponse({
+            'success': True,
+            'record': {
+                'make': equipment.make,
+                'modelno': equipment.modelno,
+                'description': equipment.description,
+                'unit': equipment.unit,
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+
+
+
+# urls.py
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('save-details/', views.save_details, name='save_details'),
+]
+
+
+
+
+# models.py
+from django.db import models
+
+class Equipment(models.Model):
+    make = models.CharField(max_length=100)
+    modelno = models.CharField(max_length=100)
+    description = models.TextField()
+    unit = models.CharField(max_length=50)
+
+
+
+
+
+
+<h3>Details Form</h3>
+<input type="hidden" id="record_id">
+<input type="text" id="make" class="form-control" placeholder="Make" required>
+<input type="text" id="modelno" class="form-control" placeholder="Model No" required>
+<input type="text" id="description" class="form-control" placeholder="Description" required>
+
+<select id="unitSelect" class="form-select" required>
+  <option value="">Select Unit</option>
+  <option value="numbers">Numbers</option>
+  <option value="meters">Meters</option>
+</select>
+
+<button type="submit" id="saveData" class="btn">Save</button>
+
+<!-- Table to display saved records -->
+<table id="dataTable" border="1" style="margin-top: 20px;">
+  <thead>
+    <tr>
+      <th>Make</th>
+      <th>Model No</th>
+      <th>Description</th>
+      <th>Unit</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+document.getElementById('saveData').addEventListener('click', function () {
+    const make = document.getElementById('make').value;
+    const modelno = document.getElementById('modelno').value;
+    const description = document.getElementById('description').value;
+    const unit = document.getElementById('unitSelect').value;
+
+    fetch('/save-details/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')  // Securely handle CSRF
+        },
+        body: JSON.stringify({ make, modelno, description, unit })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            appendRowToTable(data.record);
+            clearInputs();
+        } else {
+            alert(data.error || 'Failed to save.');
+        }
+    });
+});
+
+function appendRowToTable(record) {
+    const row = `
+        <tr>
+            <td>${record.make}</td>
+            <td>${record.modelno}</td>
+            <td>${record.description}</td>
+            <td>${record.unit}</td>
+        </tr>`;
+    document.querySelector('#dataTable tbody').insertAdjacentHTML('beforeend', row);
+}
+
+function clearInputs() {
+    document.getElementById('make').value = '';
+    document.getElementById('modelno').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('unitSelect').value = '';
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h3>Details Form</h3>
+<input type="hidden" id="record_id">
+<input type="text" id="make" class="form-control" placeholder="Make" required>
+<input type="text" id="modelno" class="form-control" placeholder="Model No" required>
+<input type="text" id="description" class="form-control" placeholder="Description" required>
+
+<select id="unitSelect" class="form-select" required>
+  <option value="">Select Unit</option>
+  <option value="numbers">Numbers</option>
+  <option value="meters">Meters</option>
+</select>
+
+<button id="saveData" class="btn">Save</button>
+
+<h3>Details table</h3>
+<table id="dataTable" border="1" cellpadding="10">
+  <thead>
+    <tr>
+      <th>Make</th>
+      <th>Model No</th>
+      <th>Description</th>
+      <th>Units</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for data in data %}
+    <tr data-id="{{ data.id }}">
+      <td>{{ data.make }}</td>
+      <td>{{ data.modelno }}</td>
+      <td>{{ data.description }}</td>
+      <td>{{ data.units }}</td>
+      <td>
+        <button onclick="editRow(this)">Edit</button>
+        <button onclick="deleteRow(this)">Delete</button>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">No records found...!</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+// Helper to get CSRF token cookie
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        for (let cookie of document.cookie.split(';')) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.slice(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+document.getElementById('saveData').addEventListener('click', () => {
+    const record_id = document.getElementById('record_id').value;
+    const make = document.getElementById('make').value.trim();
+    const modelno = document.getElementById('modelno').value.trim();
+    const description = document.getElementById('description').value.trim();
+    const unit = document.getElementById('unitSelect').value;
+
+    if (!make || !modelno || !description || !unit) {
+        alert('All fields are required.');
+        return;
+    }
+
+    fetch('/save-product/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ record_id, make, modelno, description, unit })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            if (record_id) {
+                updateRowInTable(data.record);
+            } else {
+                appendRowToTable(data.record);
+            }
+            clearInputs();
+        } else {
+            alert(data.error || 'Failed to save data.');
+        }
+    })
+    .catch(() => alert('Failed to connect to server.'));
+});
+
+function appendRowToTable(record) {
+    const tbody = document.querySelector('#dataTable tbody');
+    const row = document.createElement('tr');
+    row.setAttribute('data-id', record.id);
+    row.innerHTML = `
+      <td>${record.make}</td>
+      <td>${record.modelno}</td>
+      <td>${record.description}</td>
+      <td>${record.units}</td>
+      <td>
+        <button onclick="editRow(this)">Edit</button>
+        <button onclick="deleteRow(this)">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(row);
+}
+
+function updateRowInTable(record) {
+    const row = document.querySelector(`#dataTable tr[data-id="${record.id}"]`);
+    if (!row) return;
+    row.cells[0].textContent = record.make;
+    row.cells[1].textContent = record.modelno;
+    row.cells[2].textContent = record.description;
+    row.cells[3].textContent = record.units;
+}
+
+function clearInputs() {
+    document.getElementById('record_id').value = '';
+    document.getElementById('make').value = '';
+    document.getElementById('modelno').value = '';
+    document.getElementById('description').value = '';
+    document.getElementById('unitSelect').value = '';
+}
+
+function editRow(button) {
+    const row = button.closest('tr');
+    document.getElementById('record_id').value = row.getAttribute('data-id');
+    document.getElementById('make').value = row.cells[0].textContent;
+    document.getElementById('modelno').value = row.cells[1].textContent;
+    document.getElementById('description').value = row.cells[2].textContent;
+    document.getElementById('unitSelect').value = row.cells[3].textContent;
+}
+
+function deleteRow(button) {
+    if (!confirm('Are you sure you want to delete this record?')) return;
+
+    const row = button.closest('tr');
+    const recordId = row.getAttribute('data-id');
+
+    fetch(`/delete-product/${recordId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            row.remove();
+            clearInputs();
+        } else {
+            alert(data.error || 'Failed to delete record.');
+        }
+    })
+    .catch(() => alert('Failed to connect to server.'));
+}
+</script>
+
+
+
+
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('save-product/', views.save_product_ajax, name='save_product_ajax'),
+    path('delete-product/<int:record_id>/', views.delete_product_ajax, name='delete_product_ajax'),
+]
+
+
+
+
+    import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_POST
+from .models import Details
+
+@require_POST
+@ensure_csrf_cookie
+def save_product_ajax(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    record_id = data.get('record_id')
+    make = data.get('make')
+    modelno = data.get('modelno')
+    description = data.get('description')
+    unit = data.get('unit')
+
+    if not all([make, modelno, description, unit]):
+        return JsonResponse({'success': False, 'error': 'All fields are required.'}, status=400)
+
+    if record_id:
+        # Update existing record
+        try:
+            record = Details.objects.get(id=record_id)
+            record.make = make
+            record.modelno = modelno
+            record.description = description
+            record.units = unit
+            record.save()
+        except Details.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Record not found.'}, status=404)
+    else:
+        # Create new record
+        record = Details.objects.create(
+            make=make,
+            modelno=modelno,
+            description=description,
+            units=unit
+        )
+
+    return JsonResponse({
+        'success': True,
+        'record': {
+            'id': record.id,
+            'make': record.make,
+            'modelno': record.modelno,
+            'description': record.description,
+            'units': record.units,
+        }
+    })
+
+@require_POST
+@ensure_csrf_cookie
+def delete_product_ajax(request, record_id):
+    try:
+        record = Details.objects.get(id=record_id)
+        record.delete()
+        return JsonResponse({'success': True})
+    except Details.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Record not found.'}, status=404)

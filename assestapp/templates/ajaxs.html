@@ -1,0 +1,276 @@
+{% extends 'navbar.html' %}
+{% block content %}
+{% load static %}
+
+<style>
+  .scrollable-table{
+  height: 450px;
+  width:700px;
+  overflow-y:auto;
+  }
+
+
+  .form-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .form-control, .form-select {
+    padding: 0.375rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    width: auto;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+  }
+
+  .form-select {
+    width: 210px;
+    height:38px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: #fff;
+    background-color: #0d6efd;
+    border: 1px solid #0d6efd;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    height:38px;
+    width:100px
+  }
+
+  .btn:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+  }
+</style>
+
+<h3>Details Form</h3>
+<input type="text" id="make" class="form-control" placeholder="Make" required>
+<input type="text" id="modelno" class="form-control" placeholder="Model No" required>
+<input type="text" id="description" class="form-control" placeholder="Description" required>
+
+<select id="unitSelect" class="form-select" required>
+  <option value="">Select Unit</option>
+  <option value="numbers">Numbers</option>
+  <option value="meters">Meters</option>
+</select>
+
+<button class="btn submit" data-id="" id="submit">Save</button>
+
+
+<h3>Details table</h3>
+<table id="dataTable" border="1" cellpadding="10">
+  <thead>
+      <th>Make</th>
+      <th>Model No</th>
+      <th>Description</th>
+      <th>Units</th>
+      <th>Actions</th>
+  </thead>
+  <tbody id="tbodyId">
+    {% for data in data %}
+    <tr data-id="{{ data.id }}" id="{{ data.id }}"><!--Each row has a data-id attribute to store the record's primary key.-->
+      <td>{{ data.make }}</td>
+      <td>{{ data.modelno }}</td>
+      <td>{{ data.description }}</td>
+      <td>{{ data.units }}</td>
+      <td>
+        <button id="EditRecord__{{ data.id }}" onClick="EditRecord({{ data.id }})">Edit</button>
+        <button  id="Delete__{{ data.id }}" onClick="DeleteRecordData({{ data.id }})">Delete</button>
+      </td>
+    </tr>
+    {% empty %}
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+
+
+  function EditRecord(id){
+    debugger
+    let my_reco=$(this).closest(" tr")
+
+    $("#submit").attr("data-id",id)
+    for(let m=0;m<$("#tbodyId tr").length;m++){
+      if($("#tbodyId tr")[m].id==id){
+        $('#make').val( $("#tbodyId tr")[m].children[0].textContent)
+        $('#modelno').val( $("#tbodyId tr")[m].children[1].textContent)
+        $('#description').val( $("#tbodyId tr")[m].children[2].textContent)
+        $('#unitSelect').val( $("#tbodyId tr")[m].children[3].textContent)
+        return false;
+      }
+    }
+    
+  }
+  function DeleteRecordData(record_id){
+    debugger
+    let formdata={
+      "record_id":record_id,
+      "status":"Deleted"
+    }
+    $.ajax({
+          url: '/save/',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ "formdata": formdata}),
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          success: function (data) {
+            $("#tbodyId").empty();
+            console.log('Success:', data);
+
+            alert("Record Deleted Successfully");
+            
+            TableAppendData(data["records"])
+          }
+        });
+  }
+
+
+  function TableAppendData(data){
+       var tr_row=""
+        for (var j = 0; j < data.length; j++) {
+          debugger
+          let Records = data[j];
+          tr_row+='<tr id='+Records.id+'</tr>'
+          tr_row+='<td>'+Records.make+'</td>'
+          tr_row+='<td>'+Records.modelno+'</td>'
+          tr_row+='<td>'+Records.description+'</td>'
+          tr_row+='<td>'+Records.units+'</td>'
+          tr_row += `
+                <td>
+                  <button  id="EditRecord__${Records.id}" onClick="EditRecord(${Records.id})">Edit</button>
+                  <button  id="Delete__${Records.id}" onClick="DeleteRecordData(${Records.id})">Delete</button>
+                </td>
+              `;
+        }
+        console.log(tr_row)
+        $("#tbodyId").append(tr_row)
+        $('#make').val("")
+        $('#modelno').val("")
+        $('#description').val("")
+        $('#unitSelect').val("")
+  }
+
+
+  $(document).ready(function(){
+
+    
+    $(".submit").click(function(){
+      debugger
+      if(document.getElementById('make').value==""){
+        alert("Please Enter Make ")
+        return false;
+      }else if(document.getElementById('modelno').value.trim()==""){
+        alert("Please Enter proper  Modal Number ")
+        return false;
+      }else if(document.getElementById('description').value.trim()==""){
+        alert("Please Enter proper  Description Number ")
+        return false;
+      }else if(document.getElementById('unitSelect').value.trim()==""){
+        alert("Please select  Unit ")
+        return false;
+      }
+
+
+      let rcordId = $("#submit").attr("data-id");
+      let varbledsmy = "";
+
+      if (rcordId && rcordId !== "") {
+        varbledsmy = "updated";  // has an ID → update
+      } else {
+        varbledsmy = "New";      // no ID → new record
+      }
+
+      const formdata = {
+        record_id: rcordId,
+        make: document.getElementById('make').value.trim(),
+        modelno: document.getElementById('modelno').value.trim(),
+        description: document.getElementById('description').value.trim(),
+        units: document.getElementById('unitSelect').value,
+        "status":varbledsmy
+      };
+        $.ajax({
+          url: '/save/',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({ "formdata": formdata}),
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          success: function (data) {
+            console.log('Success:', data);
+            $("#tbodyId").empty();
+            if (data["checking"] == "New") {
+              alert("Record Added Successfully");
+            } else {
+              alert("Record Updated Successfully");
+            }
+         TableAppendData(data["records"])
+          }
+        });
+    })
+
+
+
+      $(".DeleteRecord").click(function(){
+          debugger
+          let record_id=$(".DeleteRecord")[0].id.split("__")[1]
+          let formdata={
+            "record_id":record_id,
+            "status":"Deleted"
+          }
+          $.ajax({
+                url: '/save/',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ "formdata": formdata}),
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                success: function (data) {
+                  $("#tbodyId").empty();
+                  console.log('Success:', data);
+
+                  alert("Record Deleted Successfully");
+                  
+                  TableAppendData(data["records"])
+                }
+              });
+        })
+
+
+  })
+
+
+
+
+
+
+
+ 
+</script>
+{% endblock %}
+
+

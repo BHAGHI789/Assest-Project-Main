@@ -1,0 +1,42 @@
+{% extends 'navbar.html' %}
+
+{% block content %}
+<h2>Search Assigned Products</h2>
+
+<form method="get" action="{% url 'productfilter' %}">
+  <input type="text" name="q" value="{{ query }}" placeholder="Search by product name" style="padding: 6px; width: 300px;">
+  <button type="submit" style="padding: 6px;">Search</button>
+</form>
+
+<br>
+
+{% if query %}
+  <h4>Results for "{{ query }}":</h4>
+
+  <table border="1" cellpadding="8" cellspacing="0">
+    <tr>
+      <th>Employee Name</th>
+      <th>Employee ID</th>
+      <th>Product Make</th>
+      <th>Model No</th>
+      <th>Description</th>
+      <th>Units</th>
+      <th>Assigned Date</th>
+    </tr>
+    {% for assignment in results %}
+    <tr>
+      <td>{{ assignment.employee.user.username }}</td>
+      <td>{{ assignment.employee.empId }}</td>
+      <td>{{ assignment.details.make }}</td>
+      <td>{{ assignment.details.modelno }}</td>
+      <td>{{ assignment.details.description }}</td>
+      <td>{{ assignment.details.units }}</td>
+      <td>{{ assignment.date }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">No assigned products found.</td></tr>
+    {% endfor %}
+  </table>
+{% endif %}
+
+{% endblock %}

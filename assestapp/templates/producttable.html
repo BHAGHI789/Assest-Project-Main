@@ -1,0 +1,105 @@
+{% extends 'navbar.html' %}
+
+{% block content %}
+<html>
+<head>
+  <meta charset="UTF-8">
+  
+<style>
+
+.scrollable-table{
+  height: 500px;
+  width:1000px;
+  overflow-y:auto;
+  }
+</style>
+
+<form method="post" id="csrf-form">{% csrf_token %}</form>
+<h2>Registered Employees</h2>
+  <div class="scrollable-table">
+
+<table border="1" cellpadding="10">
+    <thead>
+        
+        <tr>
+            <th>Emp ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Gender</th>
+            <th>Registration Date</th>
+            <th>Phone</th>
+            <th>Status</th>
+            <th>Action</th>        
+            
+        </tr>
+    </thead>
+    <tbody>
+        {% for emp in employees %}
+        <tr> 
+            <td>{{ emp.empId }}</td>
+            <td>{{ emp.user.username }}</td>
+            <td>{{ emp.user.email }}</td>
+            <td>{{ emp.gender }}</td>
+            <td>{{ emp.date }}</td>
+            <td>{{ emp.phone }}</td>
+            <td>{{ emp.status}}</td>
+            
+            <td id="status-{{ emp.empId }}">
+            
+
+                <button class="btn btn-primary toggle-status" data-empid="{{ emp.empId }}">
+                    {% if emp.status == 'Active' %} 
+                        Deactivate   
+                    {% else %}
+                        Activate
+                    {% endif %}
+                </button>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8">No registered users found.</td>
+        </tr> 
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.querySelectorAll('.toggle-status');
+
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const empId = this.getAttribute('data-empid');
+            const csrfToken = document.querySelector('#csrf-form [name=csrfmiddlewaretoken]').value;
+            const buttonEl = this;
+
+            fetch(`/toggle-status/${empId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({})  // optional, since empId is in URL
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status) {
+                    // Update the button label
+                    buttonEl.textContent = data.status === 'Active' ? 'Deactivate' : 'Activate';
+                    // Update the status text in the row
+                    const statusCell = buttonEl.closest('td').previousElementSibling;
+                    if (statusCell) statusCell.textContent = data.status;
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(() => {
+                alert('Server error while toggling status.');
+            });
+        });
+    });
+});
+
+</script>
+{% endblock %}
