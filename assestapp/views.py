@@ -22,6 +22,7 @@ import json
 from django.views.decorators.http import require_POST
 from datetime import * 
 import pandas as pd
+# Bhagyaraj Developed
 def reg(request):
     if request.method == 'POST':
         uname = request.POST.get('username')
